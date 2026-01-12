@@ -7,4 +7,4 @@ A comprehensive Machine Learning project aimed at predicting residential home pr
 
 - **Architecture:** Modular Pipeline-based design (Data Ingestion -> Transformation -> Trainer -> Prediction).
 
-- **Tech Stack:** CatBoost, XGBoost, Scikit-learn, FastAPI, Pandas, NumPy.
+- **Tech Stack:** CatBoost, XGBoost, Scikit-learn, FastAPI, Pandas, NumPy, Dagshub, Jupyter, Matplotlib, Seaborn (for statistical visualization).
