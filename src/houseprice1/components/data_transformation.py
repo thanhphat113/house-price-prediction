@@ -15,108 +15,118 @@ from src.houseprice1.exception import CustomException
 from src.houseprice1.logger import logging
 import os
 
+
 @dataclass
 class DataTransformationConfig:
-	preprocessor_obj_file_path = os.path.join('artifacts', 'preprocessor.pkl')
+    preprocessor_obj_file_path = os.path.join("artifacts", "preprocessor.pkl")
+
 
 class DataTransformation:
-	def __init__(self):
-		self.data_transformation_config = DataTransformationConfig()
-	
-	def get_data_transformation_object(self):
-		'''
-		This function is responsible for data transformation
-		'''
-		try:
-			## Categorical columns
-			ord_categorical_cols = ['ExterQual', 'BsmtQual', 'KitchenQual', 'GarageFinish']
-			ranking_type_1 = ['Na','Po','Fa', 'TA', 'Gd', 'Ex']
-			ranking_type_2 = ['Na','Unf','RFn', 'Fin']
-			hierarchies = [ranking_type_1, ranking_type_1, ranking_type_1, ranking_type_2]
+    def __init__(self):
+        self.data_transformation_config = DataTransformationConfig()
 
-			one_categorical_cols = ['MSZoning', 'CentralAir','Neighborhood']
-			
-			## Numerical Columns
-			numerical_cols = [
-				'OverallQual',
-				'GrLivArea',
-				'GarageCars', 
-				'TotalBsmtSF', 
-				'FullBath', 
-				'YearBuilt', 
-				'TotRmsAbvGrd', 
-				'Fireplaces', 
-				'WoodDeckSF',
-				'OpenPorchSF'
-			]
+    def get_data_transformation_object(self):
+        """
+        This function is responsible for data transformation
+        """
+        try:
+            ## Categorical columns
+            ord_categorical_cols = ["ExterQual", "BsmtQual", "KitchenQual", "GarageFinish"]
+            ranking_type_1 = ["Po", "Fa", "TA", "Gd", "Ex"]
+            ranking_type_2 = ["Unf", "RFn", "Fin"]
+            hierarchies = [ranking_type_1, ranking_type_1, ranking_type_1, ranking_type_2]
 
-			num_pipeline = Pipeline(steps=[
-				("impute", SimpleImputer(strategy='median')),
-				("feature_engineering", create_quality_weighted_area()),
-				("scaler", StandardScaler())
-			])
+            one_categorical_cols = ["MSZoning", "CentralAir", "Neighborhood"]
 
-			cat_ord_pipeline = Pipeline(steps=[
-				("impute", SimpleImputer(strategy='most_frequent')),
-				("ordinal", OrdinalEncoder(categories=hierarchies)),
-				("scaler", StandardScaler(with_mean=False))
-			])
+            ## Numerical Columns
+            numerical_cols = [
+                "OverallQual",
+                "GrLivArea",
+                "TotalBsmtSF",
+                "FullBath",
+                "YearBuilt",
+                "TotRmsAbvGrd",
+                "Fireplaces",
+                "WoodDeckSF",
+                "OpenPorchSF",
+            ]
 
-			cat_onehot_pipeline = Pipeline(steps=[
-				("impute", SimpleImputer(strategy='most_frequent')),
-				("one_hot", OneHotEncoder()),
-				("scaler", StandardScaler(with_mean=False))
-			])
+            num_pipeline = Pipeline(
+                steps=[
+                    ("impute", SimpleImputer(strategy="median")),
+                    ("feature_engineering", create_quality_weighted_area()),
+                    ("scaler", StandardScaler()),
+                ]
+            )
 
-			preprocessor = ColumnTransformer([
-				("num_pipeline", num_pipeline, numerical_cols),
-				("one_hot_pipeline", cat_onehot_pipeline, one_categorical_cols),
-				("ordinal_pipeline", cat_ord_pipeline ,ord_categorical_cols)
-			])
+            cat_ord_pipeline = Pipeline(
+                steps=[
+                    ("impute", SimpleImputer(strategy="most_frequent")),
+                    ("ordinal", OrdinalEncoder(categories=hierarchies)),
+                    ("scaler", StandardScaler(with_mean=False)),
+                ]
+            )
 
-			return preprocessor
+            cat_onehot_pipeline = Pipeline(
+                steps=[
+                    ("impute", SimpleImputer(strategy="most_frequent")),
+                    ("one_hot", OneHotEncoder()),
+                    ("scaler", StandardScaler(with_mean=False)),
+                ]
+            )
 
-		except Exception as ex:
-			raise CustomException(ex, sys)
-		
+            preprocessor = ColumnTransformer(
+                [
+                    ("num_pipeline", num_pipeline, numerical_cols),
+                    ("one_hot_pipeline", cat_onehot_pipeline, one_categorical_cols),
+                    ("ordinal_pipeline", cat_ord_pipeline, ord_categorical_cols),
+                ]
+            )
 
-	def initiate_data_transformation(self, train_path, test_path):
-		try:
-			train_df=pd.read_csv(os.path.join(train_path))
-			test_df=pd.read_csv(os.path.join(test_path))
+            return preprocessor
 
-			logging.info("Reading data train and test file")
+        except Exception as ex:
+            raise CustomException(ex, sys)
 
-			preprocessing_obj = self.get_data_transformation_object()
+    def initiate_data_transformation(self, train_path, test_path):
+        try:
+            train_df = pd.read_csv(os.path.join(train_path))
+            test_df = pd.read_csv(os.path.join(test_path))
 
-			target_col_name = "SalePrice"
+            logging.info("Reading data train and test file")
 
-			input_features_train_df = train_df.drop(columns=[target_col_name],axis=1)
-			target_feature_train_df = train_df[target_col_name]
+            preprocessing_obj = self.get_data_transformation_object()
 
-			input_features_test_df = test_df.drop(columns=[target_col_name],axis=1)
-			target_feature_test_df = test_df[target_col_name]
+            target_col_name = "SalePrice"
 
-			logging.info("Applying Preprocessing on train and test dataframe")
+            input_features_train_df = train_df.drop(columns=[target_col_name], axis=1)
+            target_feature_train_df = train_df[target_col_name]
+            target_feature_train_df = np.log1p(target_feature_train_df)
 
-			input_feature_train_arr = preprocessing_obj.fit_transform(input_features_train_df)
-			input_feature_test_arr = preprocessing_obj.transform(input_features_test_df)
+            input_features_test_df = test_df.drop(columns=[target_col_name], axis=1)
+            target_feature_test_df = test_df[target_col_name]
+            target_feature_test_df = np.log1p(target_feature_test_df)
 
-			train_arr = np.c_[input_feature_train_arr, np.array(target_feature_train_df)]
-			test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
+            logging.info("Applying Preprocessing on train and test dataframe")
 
-			logging.info(f"Saved preprocessing object")
+            input_feature_train_arr = preprocessing_obj.fit_transform(input_features_train_df)
+            input_feature_test_arr = preprocessing_obj.transform(input_features_test_df)
 
-			save_object(
-				file_path=self.data_transformation_config.preprocessor_obj_file_path,
-				obj=preprocessing_obj
-			)
-			
-			return(
-				train_arr,
-				test_arr,
-				self.data_transformation_config.preprocessor_obj_file_path
-			)
-		
-		except Exception as ex:
-			raise CustomException(ex,sys)
+            train_arr = np.c_[input_feature_train_arr, np.array(target_feature_train_df)]
+            test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
+
+            logging.info(f"Saved preprocessing object")
+
+            save_object(
+                file_path=self.data_transformation_config.preprocessor_obj_file_path,
+                obj=preprocessing_obj,
+            )
+
+            return (
+                train_arr,
+                test_arr,
+                self.data_transformation_config.preprocessor_obj_file_path,
+            )
+
+        except Exception as ex:
+            raise CustomException(ex, sys)

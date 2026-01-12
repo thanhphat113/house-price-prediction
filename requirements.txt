@@ -1,4 +1,5 @@
 black
+dagshub
 flake8
 ipython
 isort
@@ -10,12 +11,16 @@ notebook
 numpy
 pandas
 pip
+mlflow
 python-dotenv
 scikit-learn
 tqdm
 typer
--e .
 ipykernel
 seaborn
 catboost
 xgboost>=2.1.0
+fastapi
+pydantic
+uvicorn
+-e .
